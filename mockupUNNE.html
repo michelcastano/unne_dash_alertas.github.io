@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mockup Dashboard Alertas</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+background:#0f172a;
+color:white;
+margin:0;
+padding:20px;
+}
+
+h1{
+margin-bottom:10px;
+}
+
+.filters{
+display:flex;
+gap:20px;
+margin-bottom:20px;
+}
+
+.kpis{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:10px;
+margin-bottom:25px;
+}
+
+.kpi{
+background:#1e293b;
+padding:15px;
+border-radius:8px;
+text-align:center;
+}
+
+.kpi-title{
+font-size:12px;
+opacity:.7;
+}
+
+.kpi-value{
+font-size:22px;
+font-weight:bold;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:25px;
+margin-bottom:25px;
+}
+
+.full{
+grid-column:1 / -1;
+}
+
+canvas{
+background:#111827;
+padding:10px;
+border-radius:8px;
+}
+
+select,input{
+padding:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Dashboard Prevención de Riesgo (Mockup)</h1>
+
+<div class="filters">
+
+<label>Agrupación horaria
+<select id="hourGrouping">
+<option value="1">1 hora</option>
+<option value="2">2 horas</option>
+<option value="4">4 horas</option>
+<option value="8">8 horas</option>
+</select>
+</label>
+
+</div>
+
+<div class="kpis">
+
+<div class="kpi"><div class="kpi-title">Vehículos</div><div class="kpi-value">420</div></div>
+<div class="kpi"><div class="kpi-title">Total Alertas</div><div id="kTotal" class="kpi-value"></div></div>
+<div class="kpi"><div class="kpi-title">Fatiga</div><div id="kFatiga" class="kpi-value"></div></div>
+<div class="kpi"><div class="kpi-title">Distracción</div><div id="kDis" class="kpi-value"></div></div>
+<div class="kpi"><div class="kpi-title">Velocidad</div><div id="kVel" class="kpi-value"></div></div>
+<div class="kpi"><div class="kpi-title">Pasajero</div><div id="kPas" class="kpi-value"></div></div>
+<div class="kpi"><div class="kpi-title">HoS</div><div id="kHos" class="kpi-value"></div></div>
+
+</div>
+
+<div class="grid">
+
+<div>
+<h3>Distribución por tipo</h3>
+<canvas id="pie"></canvas>
+</div>
+
+<div>
+<h3>Alertas por día de semana</h3>
+<canvas id="dow"></canvas>
+</div>
+
+<div class="full">
+<h3>Distribución horaria</h3>
+<canvas id="hourly"></canvas>
+</div>
+
+</div>
+
+<script>
+
+const alertTypes=[
+"Fatiga",
+"Distracción",
+"Exceso velocidad",
+"Pasajero",
+"HoS"
+]
+
+const colors={
+"Fatiga":"#ef4444",
+"Distracción":"#f97316",
+"Exceso velocidad":"#3b82f6",
+"Pasajero":"#a855f7",
+"HoS":"#14b8a6"
+}
+
+function random(max){
+return Math.floor(Math.random()*max)
+}
+
+let dailyData={}
+let hourlyRaw={}
+
+alertTypes.forEach(a=>{
+dailyData[a]=[]
+hourlyRaw[a]=Array(24).fill(0)
+})
+
+let days=365
+
+for(let d=0;d<days;d++){
+
+alertTypes.forEach(a=>{
+
+let v=random(20)+5
+
+dailyData[a].push(v)
+
+let hour=random(24)
+
+hourlyRaw[a][hour]+=v
+
+})
+
+}
+
+function sum(arr){
+return arr.reduce((a,b)=>a+b,0)
+}
+
+function updateKPIs(){
+
+let totals={}
+let total=0
+
+alertTypes.forEach(a=>{
+totals[a]=sum(dailyData[a])
+total+=totals[a]
+})
+
+document.getElementById("kTotal").innerText=total
+document.getElementById("kFatiga").innerText=totals["Fatiga"]
+document.getElementById("kDis").innerText=totals["Distracción"]
+document.getElementById("kVel").innerText=totals["Exceso velocidad"]
+document.getElementById("kPas").innerText=totals["Pasajero"]
+document.getElementById("kHos").innerText=totals["HoS"]
+
+return totals
+
+}
+
+let totals=updateKPIs()
+
+new Chart(document.getElementById("pie"),{
+
+type:"pie",
+
+data:{
+labels:Object.keys(totals),
+datasets:[{
+data:Object.values(totals),
+backgroundColor:Object.keys(totals).map(a=>colors[a])
+}]
+}
+
+})
+
+function computeDowDistribution(){
+
+let dowTotals=[0,0,0,0,0,0,0]
+
+for(let i=0;i<days;i++){
+
+let date=new Date(2026,0,1+i)
+
+let dow=(date.getDay()+6)%7
+
+let totalDay=0
+
+alertTypes.forEach(a=>{
+totalDay+=dailyData[a][i]
+})
+
+dowTotals[dow]+=totalDay
+
+}
+
+return dowTotals
+
+}
+
+let dowData=computeDowDistribution()
+
+new Chart(document.getElementById("dow"),{
+
+type:"bar",
+
+data:{
+labels:["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"],
+datasets:[{
+data:dowData,
+backgroundColor:"#60a5fa"
+}]
+},
+
+options:{
+plugins:{legend:{display:false}}
+}
+
+})
+
+function aggregateHours(group){
+
+let labels=[]
+let datasets={}
+
+alertTypes.forEach(a=>datasets[a]=[])
+
+for(let i=0;i<24;i+=group){
+
+labels.push(i+"-"+(i+group))
+
+alertTypes.forEach(a=>{
+
+let sum=0
+
+for(let j=i;j<i+group;j++){
+
+sum+=hourlyRaw[a][j]
+
+}
+
+datasets[a].push(sum)
+
+})
+
+}
+
+return {labels,datasets}
+
+}
+
+let hourlyChart
+
+function renderHourly(){
+
+let group=parseInt(document.getElementById("hourGrouping").value)
+
+let data=aggregateHours(group)
+
+if(hourlyChart)hourlyChart.destroy()
+
+hourlyChart=new Chart(document.getElementById("hourly"),{
+
+type:"bar",
+
+data:{
+labels:data.labels,
+datasets:alertTypes.map(a=>({
+label:a,
+data:data.datasets[a],
+backgroundColor:colors[a],
+stack:"stack"
+}))
+},
+
+options:{
+scales:{
+x:{stacked:true},
+y:{stacked:true}
+}
+}
+
+})
+
+}
+
+document.getElementById("hourGrouping").addEventListener("change",renderHourly)
+
+renderHourly()
+
+</script>
+
+</body>
+</html>
