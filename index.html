@@ -1,331 +1,586 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Mockup Dashboard Alertas</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Alertas Prevención de Riesgo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: white;
+    }
 
-<style>
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 24px;
+    }
 
-body{
-font-family:Arial, Helvetica, sans-serif;
-background:#0f172a;
-color:white;
-margin:0;
-padding:20px;
-}
+    .subtitle {
+      margin: 0 0 18px 0;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
 
-h1{
-margin-bottom:10px;
-}
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+      background: #111827;
+      border-radius: 10px;
+      padding: 16px;
+    }
 
-.filters{
-display:flex;
-gap:20px;
-margin-bottom:20px;
-}
+    .filter {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
-.kpis{
-display:grid;
-grid-template-columns:repeat(7,1fr);
-gap:10px;
-margin-bottom:25px;
-}
+    .filter label {
+      font-size: 12px;
+      color: #cbd5e1;
+    }
 
-.kpi{
-background:#1e293b;
-padding:15px;
-border-radius:8px;
-text-align:center;
-}
+    .filter select,
+    .filter input {
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: white;
+      outline: none;
+    }
 
-.kpi-title{
-font-size:12px;
-opacity:.7;
-}
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
 
-.kpi-value{
-font-size:22px;
-font-weight:bold;
-}
+    .kpi {
+      background: #1e293b;
+      padding: 14px;
+      border-radius: 10px;
+      text-align: center;
+      min-height: 86px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
 
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:25px;
-margin-bottom:25px;
-}
+    .kpi-title {
+      font-size: 12px;
+      opacity: 0.78;
+      margin-bottom: 6px;
+    }
 
-.full{
-grid-column:1 / -1;
-}
+    .kpi-value {
+      font-size: 22px;
+      font-weight: bold;
+    }
 
-canvas{
-background:#111827;
-padding:10px;
-border-radius:8px;
-}
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
 
-select,input{
-padding:6px;
-}
+    .full {
+      grid-column: 1 / -1;
+    }
 
-</style>
+    .chart {
+      background: #111827;
+      padding: 16px;
+      border-radius: 10px;
+    }
+
+    .chart h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+    }
+
+    .chart-note {
+      margin: -4px 0 12px 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .pie-wrap {
+      height: 320px;
+    }
+
+    .bar-wrap {
+      height: 320px;
+    }
+
+    .hourly-wrap {
+      height: 360px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    @media (max-width: 1200px) {
+      .filters {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+      }
+      .kpis {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .full {
+        grid-column: auto;
+      }
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>Dashboard Prevención de Riesgo (Mockup)</h1>
-
-<div class="filters">
-
-<label>Agrupación horaria
-<select id="hourGrouping">
-<option value="1">1 hora</option>
-<option value="2">2 horas</option>
-<option value="4">4 horas</option>
-<option value="8">8 horas</option>
-</select>
-</label>
-
-</div>
-
-<div class="kpis">
-
-<div class="kpi"><div class="kpi-title">Vehículos</div><div class="kpi-value">420</div></div>
-<div class="kpi"><div class="kpi-title">Total Alertas</div><div id="kTotal" class="kpi-value"></div></div>
-<div class="kpi"><div class="kpi-title">Fatiga</div><div id="kFatiga" class="kpi-value"></div></div>
-<div class="kpi"><div class="kpi-title">Distracción</div><div id="kDis" class="kpi-value"></div></div>
-<div class="kpi"><div class="kpi-title">Velocidad</div><div id="kVel" class="kpi-value"></div></div>
-<div class="kpi"><div class="kpi-title">Pasajero</div><div id="kPas" class="kpi-value"></div></div>
-<div class="kpi"><div class="kpi-title">HoS</div><div id="kHos" class="kpi-value"></div></div>
-
-</div>
-
-<div class="grid">
-
-<div>
-<h3>Distribución por tipo</h3>
-<canvas id="pie"></canvas>
-</div>
-
-<div>
-<h3>Alertas por día de semana</h3>
-<canvas id="dow"></canvas>
-</div>
-
-<div class="full">
-<h3>Distribución horaria</h3>
-<canvas id="hourly"></canvas>
-</div>
-
-</div>
-
-<script>
-
-const alertTypes=[
-"Fatiga",
-"Distracción",
-"Exceso velocidad",
-"Pasajero",
-"HoS"
-]
-
-const colors={
-"Fatiga":"#ef4444",
-"Distracción":"#f97316",
-"Exceso velocidad":"#3b82f6",
-"Pasajero":"#a855f7",
-"HoS":"#14b8a6"
-}
-
-function random(max){
-return Math.floor(Math.random()*max)
-}
-
-let dailyData={}
-let hourlyRaw={}
-
-alertTypes.forEach(a=>{
-dailyData[a]=[]
-hourlyRaw[a]=Array(24).fill(0)
-})
-
-let days=365
-
-for(let d=0;d<days;d++){
-
-alertTypes.forEach(a=>{
-
-let v=random(20)+5
-
-dailyData[a].push(v)
-
-let hour=random(24)
-
-hourlyRaw[a][hour]+=v
-
-})
-
-}
-
-function sum(arr){
-return arr.reduce((a,b)=>a+b,0)
-}
-
-function updateKPIs(){
-
-let totals={}
-let total=0
-
-alertTypes.forEach(a=>{
-totals[a]=sum(dailyData[a])
-total+=totals[a]
-})
-
-document.getElementById("kTotal").innerText=total
-document.getElementById("kFatiga").innerText=totals["Fatiga"]
-document.getElementById("kDis").innerText=totals["Distracción"]
-document.getElementById("kVel").innerText=totals["Exceso velocidad"]
-document.getElementById("kPas").innerText=totals["Pasajero"]
-document.getElementById("kHos").innerText=totals["HoS"]
-
-return totals
-
-}
-
-let totals=updateKPIs()
-
-new Chart(document.getElementById("pie"),{
-
-type:"pie",
-
-data:{
-labels:Object.keys(totals),
-datasets:[{
-data:Object.values(totals),
-backgroundColor:Object.keys(totals).map(a=>colors[a])
-}]
-}
-
-})
-
-function computeDowDistribution(){
-
-let dowTotals=[0,0,0,0,0,0,0]
-
-for(let i=0;i<days;i++){
-
-let date=new Date(2026,0,1+i)
-
-let dow=(date.getDay()+6)%7
-
-let totalDay=0
-
-alertTypes.forEach(a=>{
-totalDay+=dailyData[a][i]
-})
-
-dowTotals[dow]+=totalDay
-
-}
-
-return dowTotals
-
-}
-
-let dowData=computeDowDistribution()
-
-new Chart(document.getElementById("dow"),{
-
-type:"bar",
-
-data:{
-labels:["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"],
-datasets:[{
-data:dowData,
-backgroundColor:"#60a5fa"
-}]
-},
-
-options:{
-plugins:{legend:{display:false}}
-}
-
-})
-
-function aggregateHours(group){
-
-let labels=[]
-let datasets={}
-
-alertTypes.forEach(a=>datasets[a]=[])
-
-for(let i=0;i<24;i+=group){
-
-labels.push(i+"-"+(i+group))
-
-alertTypes.forEach(a=>{
-
-let sum=0
-
-for(let j=i;j<i+group;j++){
-
-sum+=hourlyRaw[a][j]
-
-}
-
-datasets[a].push(sum)
-
-})
-
-}
-
-return {labels,datasets}
-
-}
-
-let hourlyChart
-
-function renderHourly(){
-
-let group=parseInt(document.getElementById("hourGrouping").value)
-
-let data=aggregateHours(group)
-
-if(hourlyChart)hourlyChart.destroy()
-
-hourlyChart=new Chart(document.getElementById("hourly"),{
-
-type:"bar",
-
-data:{
-labels:data.labels,
-datasets:alertTypes.map(a=>({
-label:a,
-data:data.datasets[a],
-backgroundColor:colors[a],
-stack:"stack"
-}))
-},
-
-options:{
-scales:{
-x:{stacked:true},
-y:{stacked:true}
-}
-}
-
-})
-
-}
-
-document.getElementById("hourGrouping").addEventListener("change",renderHourly)
-
-renderHourly()
-
-</script>
-
+  <h1>Dashboard Prevención de Riesgo</h1>
+  <p class="subtitle">Mockup con datos dummy para visualización de alertas operativas</p>
+
+  <div class="filters">
+    <div class="filter">
+      <label for="groupSelect">Grupo de vehículos</label>
+      <select id="groupSelect">
+        <option value="todos">Todos los grupos</option>
+        <option value="norte">Grupo Norte</option>
+        <option value="centro">Grupo Centro</option>
+        <option value="sur">Grupo Sur</option>
+      </select>
+    </div>
+
+    <div class="filter">
+      <label for="vehicleSelect">Vehículo</label>
+      <select id="vehicleSelect">
+        <option value="todos">Todos los vehículos</option>
+        <option value="vh-101">VH-101</option>
+        <option value="vh-205">VH-205</option>
+        <option value="vh-318">VH-318</option>
+        <option value="vh-404">VH-404</option>
+      </select>
+    </div>
+
+    <div class="filter">
+      <label for="startDate">Fecha inicio</label>
+      <input type="date" id="startDate" value="2026-01-01" />
+    </div>
+
+    <div class="filter">
+      <label for="endDate">Fecha fin</label>
+      <input type="date" id="endDate" value="2026-12-31" />
+    </div>
+
+
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-title">Vehículos</div>
+      <div class="kpi-value" id="kVehicles">420</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">Total Alertas</div>
+      <div class="kpi-value" id="kTotal"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">Fatiga</div>
+      <div class="kpi-value" id="kFatiga"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">Distracción</div>
+      <div class="kpi-value" id="kDis"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">Velocidad</div>
+      <div class="kpi-value" id="kVel"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">Pasajero</div>
+      <div class="kpi-value" id="kPas"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-title">HoS</div>
+      <div class="kpi-value" id="kHos"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="chart">
+      <h3>Distribución por tipo de alerta</h3>
+      <p class="chart-note">Pie chart con proporciones asimétricas</p>
+      <div class="pie-wrap">
+        <canvas id="pie"></canvas>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3>Alertas por día de la semana</h3>
+      <p class="chart-note">Barras apiladas de lunes a domingo por tipo de alerta</p>
+      <div class="bar-wrap">
+        <canvas id="dow"></canvas>
+      </div>
+    </div>
+
+    <div class="chart full">
+      <h3>Distribución horaria</h3>
+      <p class="chart-note">Agregación por bloques horarios, con picos operativos más realistas</p>
+          <div class="filter">
+      <label for="hourGrouping">Agrupación horaria</label>
+      <select id="hourGrouping">
+        <option value="1">1 hora</option>
+        <option value="2">2 horas</option>
+        <option value="4">4 horas</option>
+        <option value="8">8 horas</option>
+      </select>
+    </div>
+      <div class="hourly-wrap">
+        <canvas id="hourly"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const alertTypes = [
+      "Fatiga",
+      "Distracción",
+      "Exceso velocidad",
+      "Pasajero",
+      "HoS"
+    ];
+
+    const colors = {
+      "Fatiga": "#ef4444",
+      "Distracción": "#f97316",
+      "Exceso velocidad": "#3b82f6",
+      "Pasajero": "#a855f7",
+      "HoS": "#14b8a6"
+    };
+
+    // Pesos asimétricos para que el pie tenga jerarquía clara
+    const weights = {
+      "Fatiga": 0.95,
+      "Distracción": 1.35,
+      "Exceso velocidad": 2.7,
+      "Pasajero": 0.45,
+      "HoS": 0.75
+    };
+
+    // Multiplicadores por día de semana: L a D
+    const dayFactors = [1.15, 1.08, 1.12, 1.05, 1.18, 0.82, 0.72];
+
+    // Picos por hora
+    const peakHours = new Set([7, 8, 13, 14, 18, 19]);
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function sum(arr) {
+      return arr.reduce((a, b) => a + b, 0);
+    }
+
+    function formatHourRange(start, group) {
+      const end = start + group;
+      const s = String(start).padStart(2, "0") + ":00";
+      const e = String(end).padStart(2, "0") + ":00";
+      return `${s} - ${e}`;
+    }
+
+    function getDaysInRange(start, end) {
+      const dates = [];
+      const current = new Date(start);
+      while (current <= end) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function clampOneYear(start, end) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const diff = Math.floor((end - start) / msPerDay);
+      return diff <= 365;
+    }
+
+    function getVehicleCount(group, vehicle) {
+      if (vehicle !== "todos") return 1;
+      if (group === "norte") return 138;
+      if (group === "centro") return 164;
+      if (group === "sur") return 118;
+      return 420;
+    }
+
+    function generateData() {
+      const group = document.getElementById("groupSelect").value;
+      const vehicle = document.getElementById("vehicleSelect").value;
+      const startValue = document.getElementById("startDate").value;
+      const endValue = document.getElementById("endDate").value;
+
+      const start = new Date(startValue + "T00:00:00");
+      const end = new Date(endValue + "T00:00:00");
+
+      if (end < start) {
+        alert("La fecha fin no puede ser menor que la fecha inicio.");
+        return null;
+      }
+
+      if (!clampOneYear(start, end)) {
+        alert("El rango máximo permitido es de 12 meses.");
+        return null;
+      }
+
+      const dates = getDaysInRange(start, end);
+
+      const dailyData = {};
+      const hourlyRaw = {};
+      const dowStacked = {};
+
+      alertTypes.forEach(a => {
+        dailyData[a] = [];
+        hourlyRaw[a] = Array(24).fill(0);
+        dowStacked[a] = [0, 0, 0, 0, 0, 0, 0];
+      });
+
+      const vehicleCount = getVehicleCount(group, vehicle);
+
+      // factor por selección dummy
+      let scopeFactor = 1;
+      if (vehicle !== "todos") {
+        scopeFactor = 0.22;
+      } else if (group !== "todos") {
+        scopeFactor = 0.55;
+      }
+
+      dates.forEach(date => {
+        const dow = (date.getDay() + 6) % 7; // Lunes=0 ... Domingo=6
+        const dowFactor = dayFactors[dow];
+
+        alertTypes.forEach(type => {
+          const base = randomInt(7, 20);
+          const asym = weights[type];
+          const noise = 0.82 + Math.random() * 0.42;
+          const dayValue = Math.round(base * asym * dowFactor * scopeFactor * noise);
+
+          dailyData[type].push(dayValue);
+          dowStacked[type][dow] += dayValue;
+
+          for (let i = 0; i < dayValue; i++) {
+            let hour = randomInt(0, 23);
+
+            // más realista: más densidad en horas pico
+            if (Math.random() < 0.52) {
+              const peaks = [7, 8, 13, 14, 18, 19];
+              hour = peaks[randomInt(0, peaks.length - 1)];
+            } else if (Math.random() < 0.18) {
+              // algo de concentración secundaria
+              const secondary = [6, 9, 12, 15, 17, 20];
+              hour = secondary[randomInt(0, secondary.length - 1)];
+            }
+
+            hourlyRaw[type][hour]++;
+          }
+        });
+      });
+
+      return {
+        dates,
+        dailyData,
+        hourlyRaw,
+        dowStacked,
+        vehicleCount
+      };
+    }
+
+    function aggregateHours(hourlyRaw, group) {
+      const labels = [];
+      const datasets = {};
+
+      alertTypes.forEach(a => datasets[a] = []);
+
+      for (let i = 0; i < 24; i += group) {
+        labels.push(formatHourRange(i, group));
+
+        alertTypes.forEach(type => {
+          let total = 0;
+          for (let j = i; j < i + group && j < 24; j++) {
+            total += hourlyRaw[type][j];
+          }
+          datasets[type].push(total);
+        });
+      }
+
+      return { labels, datasets };
+    }
+
+    let pieChart = null;
+    let dowChart = null;
+    let hourlyChart = null;
+    let currentData = null;
+
+    function updateKPIs(data) {
+      const totals = {};
+      let grandTotal = 0;
+
+      alertTypes.forEach(type => {
+        totals[type] = sum(data.dailyData[type]);
+        grandTotal += totals[type];
+      });
+
+      document.getElementById("kVehicles").innerText = data.vehicleCount;
+      document.getElementById("kTotal").innerText = grandTotal;
+      document.getElementById("kFatiga").innerText = totals["Fatiga"];
+      document.getElementById("kDis").innerText = totals["Distracción"];
+      document.getElementById("kVel").innerText = totals["Exceso velocidad"];
+      document.getElementById("kPas").innerText = totals["Pasajero"];
+      document.getElementById("kHos").innerText = totals["HoS"];
+
+      return totals;
+    }
+
+    function renderPie(totals) {
+      if (pieChart) pieChart.destroy();
+
+      const ordered = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+      const labels = ordered.map(x => x[0]);
+      const values = ordered.map(x => x[1]);
+
+      pieChart = new Chart(document.getElementById("pie"), {
+        type: "pie",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: labels.map(a => colors[a]),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "right",
+              labels: { color: "white" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDow(dowStacked) {
+      if (dowChart) dowChart.destroy();
+
+      dowChart = new Chart(document.getElementById("dow"), {
+        type: "bar",
+        data: {
+          labels: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+          datasets: alertTypes.map(type => ({
+            label: type,
+            data: dowStacked[type],
+            backgroundColor: colors[type],
+            stack: "dow"
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              ticks: { color: "white" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+              stacked: true,
+              ticks: { color: "white" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: "white" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderHourly() {
+      if (!currentData) return;
+
+      const group = parseInt(document.getElementById("hourGrouping").value, 10);
+      const agg = aggregateHours(currentData.hourlyRaw, group);
+
+      if (hourlyChart) hourlyChart.destroy();
+
+      hourlyChart = new Chart(document.getElementById("hourly"), {
+        type: "bar",
+        data: {
+          labels: agg.labels,
+          datasets: alertTypes.map(type => ({
+            label: type,
+            data: agg.datasets[type],
+            backgroundColor: colors[type],
+            stack: "hourly"
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              ticks: { color: "white" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            },
+            y: {
+              stacked: true,
+              ticks: { color: "white" },
+              grid: { color: "rgba(255,255,255,0.08)" }
+            }
+          },
+          plugins: {
+            legend: {
+              labels: { color: "white" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAll() {
+      const data = generateData();
+      if (!data) return;
+
+      currentData = data;
+      const totals = updateKPIs(data);
+      renderPie(totals);
+      renderDow(data.dowStacked);
+      renderHourly();
+    }
+
+    document.getElementById("groupSelect").addEventListener("change", renderAll);
+    document.getElementById("vehicleSelect").addEventListener("change", renderAll);
+    document.getElementById("startDate").addEventListener("change", renderAll);
+    document.getElementById("endDate").addEventListener("change", renderAll);
+    document.getElementById("hourGrouping").addEventListener("change", renderHourly);
+
+    renderAll();
+  </script>
 </body>
 </html>
